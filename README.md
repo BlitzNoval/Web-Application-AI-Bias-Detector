@@ -26,4 +26,6 @@ Skewed Lenses was developed as an Honours thesis project within the Digital Arts
 
 **Vercel Deployment:** https://skewed-lenses.vercel.app/
 
-> **Note:** AI-generated outputs rely on external AI services. Response times and generation success rates may vary depending on provider availability, network conditions, and current service load.
+> **Note:** To protect API credentials, requests to Gemini, Claude, and Llama are routed through a server-side AI service rather than being made directly from the browser. The service is exposed via an ngrok tunnel during deployment, ensuring provider API keys remain secure and are never included in the client bundle.
+
+Because responses depend on external AI providers and intermediary network routing, generation times and request success rates may vary depending on service availability, network conditions, and provider load.
