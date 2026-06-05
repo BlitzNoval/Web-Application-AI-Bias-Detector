@@ -26,11 +26,11 @@ Because users typically interact with only one model at a time, this variation i
 
 Skewed Lenses treats disagreement as meaningful signal rather than noise. By making it visible, the platform:
 
-Shows that AI outputs are shaped by training data, architecture, alignment methods, and design choices rather than reflecting a single objective truth  
-Highlights how interpretation changes across differently structured or non-standard inputs  
-Encourages critical engagement with AI-generated information and supports epistemic humility  
-Provides a controlled environment for comparing model behaviour under identical conditions  
-Surfaces bias, uncertainty, and structural variation across leading language models  
+Shows that AI outputs are shaped by training data, architecture, alignment methods, and design choices rather than reflecting a single objective truth
+Highlights how interpretation changes across differently structured or non-standard inputs
+Encourages critical engagement with AI-generated information and supports epistemic humility
+Provides a controlled environment for comparing model behaviour under identical conditions
+Surfaces bias, uncertainty, and structural variation across leading language models
 
 ## Project Context
 
@@ -38,13 +38,14 @@ Skewed Lenses was developed as an Honours thesis project within the Digital Arts
 
 The project combines technical implementation with research-driven inquiry into how AI systems construct meaning, and how those constructions vary across architectures and input styles.
 
-## Tech Stack  
-React (frontend)  
-Python (multi-agent orchestration layer)  
-OpenAI API  
-Anthropic Claude API  
-Google Gemini API  
-Meta Llama API  
+## Tech Stack
+
+React (frontend)
+Python (multi-agent orchestration layer)
+OpenAI API
+Anthropic Claude API
+Google Gemini API
+Meta Llama API
 
 ## Live Demo
 
@@ -52,6 +53,7 @@ https://skewed-lenses.vercel.app/
 
 ## Notes
 
-To protect API credentials, requests to Gemini, Claude, and Llama are routed through a secure server-side orchestration layer rather than directly from the browser. This service is deployed via a controlled tunnel, ensuring API keys remain private and excluded from the client bundle.
-
-Because responses depend on external providers and network routing, latency and success rates may vary based on service availability, traffic, and model load.
+> **Notes**
+> To protect API credentials, requests to Gemini, Claude, and Llama are routed through a secure server-side orchestration layer rather than directly from the browser. This service is deployed via a controlled tunnel, ensuring API keys remain private and excluded from the client bundle.
+>
+> Because responses depend on external providers and network routing, latency and success rates may vary based on service availability, traffic, and model load.
