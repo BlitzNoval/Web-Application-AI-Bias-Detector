@@ -1,31 +1,57 @@
-# Overview
+# Skewed Lenses
 
-Skewed Lenses is a web-based tool that explores how different AI models can produce divergent, and sometimes contradictory, responses to the same prompt. Rather than presenting a single model output as a neutral representation of truth, the platform compares multiple models side by side, highlighting points of agreement, disagreement, framing differences, and variations in confidence.
+Skewed Lenses is a web-based AI ethics and interpretability tool where neurodivergent individuals complete structured tasks, and the system analyses how consistently different AI models interpret patterns in their responses.
 
-The project is built around a simple question: *what happens when we stop treating AI outputs as objective answers and start examining them as interpretations?*
+A single prompt is sent to four large language model APIs (OpenAI, Claude, Gemini, and Llama). Each model generates an independent response, and the system compares these outputs to identify divergence in reasoning, framing, confidence, and interpretation.
 
-By making model disagreement visible, Skewed Lenses allows users to inspect how different systems construct responses from the same information, exposing the assumptions, biases, and perspectives embedded within contemporary AI models.
+The platform optionally supports a multi-agent workflow where models respond to and refine each other’s outputs toward a shared outcome. All responses are visualised to highlight where models agree, disagree, or shift perspective, making inconsistency across systems explicit rather than hidden.
+
+Built with React and a multi-agent LLM orchestration layer in Python, Skewed Lenses functions as both a research tool and an experimental interface for studying how AI systems construct meaning from identical inputs.
+
+## Central Question
+
+The central question guiding the project is:
+
+What changes when AI outputs are treated as interpretations rather than objective answers, particularly when prompts reflect neurodivergent styles of thinking and expression?
+
+By surfacing disagreement directly, the system exposes how different models encode assumptions, structure knowledge, and respond to variation in input style.
 
 ## Why This Matters
 
-As AI systems become increasingly integrated into education, research, decision-making, and everyday information seeking, their outputs are often treated as authoritative. Yet capable models frequently generate responses that differ significantly in substance, framing, certainty, or recommendation despite receiving identical inputs.
+AI systems are increasingly used in education, research, decision-making, and everyday information access, yet their outputs are often treated as authoritative or neutral.
 
-These differences are usually hidden because users interact with only one model at a time.
+In practice, even state-of-the-art models frequently produce meaningfully different responses to the same prompt, varying in reasoning, tone, certainty, and structure. These differences become more pronounced when inputs reflect diverse cognitive styles, including neurodivergent patterns of communication and problem solving.
 
-Skewed Lenses treats disagreement as valuable information rather than noise. By surfacing it directly, the platform:
+Because users typically interact with only one model at a time, this variation is usually invisible.
 
-* Demonstrates that AI outputs are shaped by training data, model architecture, alignment choices, and embedded assumptions rather than reflecting a single objective truth.
-* Encourages critical engagement and epistemic humility when interpreting AI-generated information.
-* Provides researchers, students, and general users with a practical way to examine where and why AI systems diverge.
+Skewed Lenses treats disagreement as meaningful signal rather than noise. By making it visible, the platform:
+
+Shows that AI outputs are shaped by training data, architecture, alignment methods, and design choices rather than reflecting a single objective truth  
+Highlights how interpretation changes across differently structured or non-standard inputs  
+Encourages critical engagement with AI-generated information and supports epistemic humility  
+Provides a controlled environment for comparing model behaviour under identical conditions  
+Surfaces bias, uncertainty, and structural variation across leading language models  
 
 ## Project Context
 
-Skewed Lenses was developed as an Honours thesis project within the Digital Arts programme at the University of the Witwatersrand (Wits). The project was created in connection with research exploring AI interpretability, algorithmic bias, digital media, and the broader governance challenges that emerge when AI systems are treated as neutral or authoritative sources of knowledge.
+Skewed Lenses was developed as an Honours thesis project within the Digital Arts programme at the University of the Witwatersrand (Wits). It sits within research on AI interpretability, algorithmic bias, digital media theory, and the governance challenges that arise when language models are treated as neutral knowledge systems.
+
+The project combines technical implementation with research-driven inquiry into how AI systems construct meaning, and how those constructions vary across architectures and input styles.
+
+## Tech Stack  
+React (frontend)  
+Python (multi-agent orchestration layer)  
+OpenAI API  
+Anthropic Claude API  
+Google Gemini API  
+Meta Llama API  
 
 ## Live Demo
 
-**Vercel Deployment:** https://skewed-lenses.vercel.app/
+https://skewed-lenses.vercel.app/
 
-> **Note:** To protect API credentials, requests to Gemini, Claude, and Llama are routed through a server-side AI service rather than being made directly from the browser. The service is exposed via an ngrok tunnel during deployment, ensuring provider API keys remain secure and are never included in the client bundle.
+## Notes
 
-Because responses depend on external AI providers and intermediary network routing, generation times and request success rates may vary depending on service availability, network conditions, and provider load.
+To protect API credentials, requests to Gemini, Claude, and Llama are routed through a secure server-side orchestration layer rather than directly from the browser. This service is deployed via a controlled tunnel, ensuring API keys remain private and excluded from the client bundle.
+
+Because responses depend on external providers and network routing, latency and success rates may vary based on service availability, traffic, and model load.
