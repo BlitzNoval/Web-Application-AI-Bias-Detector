@@ -962,8 +962,13 @@ function App() {
 
         </div>
         <div className="subtitle">
-        AI, Bias, and Access in Today’s World
+        Dyslexia, AI and the question of diagnosis
         </div>
+        <p className="home-intro">
+          Complete two short reading and typing tasks. Watch Llama and Gemini discuss
+          whether the results could relate to dyslexia, and question each other’s conclusions.
+        </p>
+        <p className="home-note">An educational AI discussion. These tasks cannot diagnose dyslexia.</p>
         <div className="button-container">
           <button
             className="action-button primary"
@@ -989,111 +994,78 @@ function App() {
       <div className="about-container">
         <div className="about-content">
           <div className="about-item">
-            <h3>What This Project Is</h3>
+            <h3>Dyslexia and AI Diagnosis</h3>
             <p>
-              Skewed Lenses stages a conversation between two AI systems — Llama and Gemini — as they interpret the same dyslexia benchmark results.
-              Instead of producing answers, they reveal their assumptions.
+              Skewed Lenses explores how AI interprets possible signs of dyslexia.
+              Llama and Gemini receive the same reading-aloud and copy-typing results,
+              then discuss what those results might mean for a possible diagnosis.
             </p>
             <p>
-              Their dialogue is the point: it shows how AI "reasons," misreads, exaggerates, softens, or speculates based on the language patterns it was trained on.
-            </p>
-            <p>
-              This is deliberate.
-              You're not building a tool to assess students — you're building a space where AI exposes itself.
+              Their short exchange makes the reasoning visible: what each model notices,
+              what it assumes, and where its conclusions go beyond the evidence.
             </p>
           </div>
 
           <div className="about-item">
-            <h3>Why It Exists</h3>
+            <h3>Why Dyslexia?</h3>
             <p>
-              This project comes directly from the HOSGAI question: How do we keep the tool a tool?
+              Dyslexia is the central case study for this project. A reading score tells
+              only part of someone’s story. Language background, learning experience,
+              typing familiarity and speech-recognition errors can all affect how results are interpreted.
             </p>
             <p>
-              We do it by refusing to let AI speak with authority, and instead forcing it to speak in front of us.
-            </p>
-            <p>
-              When two models explain the same data — not numerically, but through language — the difference in worldview becomes visible.
-              That difference is bias.
-            </p>
-            <p>
-              This is not about dyslexia. It's about:
-            </p>
-            <ul>
-              <li>how machines interpret human cognition</li>
-              <li>how interpretation becomes "truth"</li>
-              <li>how AI language frames ability and difficulty</li>
-              <li>how neutrality is performed, not real</li>
-            </ul>
-            <p>
-              This is how your project ties into HOSGAI: You turned AI from a diagnostic instrument into something that must justify its thinking.
+              The project asks how AI handles that missing context when discussing a
+              diagnosis, and how bias can turn limited data into a confident label.
             </p>
           </div>
 
           <div className="about-item">
-            <h3>What You Can See Here</h3>
-            <p>
-              When Llama and Gemini talk, you will notice:
-            </p>
+            <h3>What to Look For</h3>
             <ul>
-              <li>one leans toward certainty</li>
-              <li>one leans toward possibility</li>
-              <li>one frames data as measurable</li>
-              <li>one frames data as contextual</li>
-              <li>both project assumptions onto the student</li>
+              <li>Which results does each AI connect to possible dyslexia?</li>
+              <li>Does it consider other explanations?</li>
+              <li>What does it assume about the person behind the scores?</li>
+              <li>Does its confidence match the evidence?</li>
             </ul>
             <p>
-              These tendencies aren't mistakes — they're bias signatures.
-            </p>
-            <p>
-              The highlighted phrases show where the other AI detects:
-            </p>
-            <ul>
-              <li>overconfidence</li>
-              <li>speculation</li>
-              <li>reductive reasoning</li>
-              <li>linguistic hedging</li>
-              <li>culturally coded assumptions</li>
-            </ul>
-            <p>
-              Bias appears not as a "score," but as the shape of the language itself.
+              Each model can highlight questionable wording in the other’s reply.
+              Explore the highlights to read its explanation. These flags are AI interpretations,
+              not verified findings of bias.
             </p>
           </div>
 
           <div className="about-item">
             <h3>How It Works</h3>
-            <ul>
-              <li>Both models receive the same benchmark summary.</li>
-              <li>Llama speaks first.</li>
-              <li>Gemini replies — sometimes building on it, sometimes challenging it.</li>
-              <li>Each model can flag the other's phrasing when it appears biased or assumptive.</li>
-              <li>You can hover to see why it was marked.</li>
-              <li>You watch their reasoning drift, diverge, intersect, and contradict.</li>
-            </ul>
+            <ol>
+              <li>Complete and save the reading-aloud and copy-typing benchmarks.</li>
+              <li>Open the AI Perspective. Both models receive the same results.</li>
+              <li>Read four brief replies: an interpretation, a challenge, a response and a closing takeaway.</li>
+              <li>Explore the bias highlights and decide which claims the evidence supports.</li>
+            </ol>
+          </div>
+
+          <div className="about-item">
+            <h3>Understanding the Discussion</h3>
             <p>
-              No AI here is "correct." The value lies in observing how they interpret, not what they conclude.
+              This is an educational demonstration of AI reasoning about dyslexia.
+              The tasks are not validated screening or diagnostic tests, and the models
+              cannot confirm or rule out dyslexia from these results.
+            </p>
+            <p>
+              A diagnosis needs a fuller assessment by a qualified professional.
+              If reading difficulties persist, a qualified dyslexia assessor can help you explore them.
             </p>
           </div>
 
           <div className="about-item">
-            <h3>What This Is Not</h3>
+            <h3>The Research Question</h3>
             <p>
-              This is not a diagnostic tool. It does not detect dyslexia. It does not evaluate users. It does not replace teachers, psychologists, or human interpretation.
+              How does bias shape the way AI talks about a dyslexia diagnosis when two
+              models see exactly the same data?
             </p>
             <p>
-              This is a critical demonstration of how AI constructs meaning — even in spaces where precision and care are essential.
-            </p>
-          </div>
-
-          <div className="about-item">
-            <h3>The Real Question</h3>
-            <p>
-              "What happens when machines explain humans?"
-            </p>
-            <p>
-              More specifically: What do their words reveal about the systems that produced them?
-            </p>
-            <p>
-              Everything you see on this page — the tone, the highlights, the disagreements — is a reminder that AI is not neutral. It is a lens. And every lens is skewed.
+              Created for Holding Our Space in the Age of GAI, this project invites you
+              to question AI’s authority by examining its language, assumptions and disagreements.
             </p>
           </div>
 
@@ -1109,7 +1081,7 @@ function App() {
               Supervision: Hanli Geyser
             </p>
             <p>
-              Speech recognition powered by Whisper AI
+              Speech recognition uses your browser’s Web Speech API
             </p>
           </div>
         </div>

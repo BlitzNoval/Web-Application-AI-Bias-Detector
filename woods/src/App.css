@@ -220,6 +220,92 @@ html {
   animation: slide-in-grid 1s ease-out 1.2s forwards;
 }
 
+.home-intro,
+.home-note {
+  max-width: 38rem;
+  margin: 0 1.2rem 1rem;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #333;
+}
+
+.home-note {
+  font-size: 0.9rem;
+}
+
+.App.dark-mode .home-intro,
+.App.dark-mode .home-note {
+  color: #ccc;
+}
+
+.about-item ol {
+  padding-left: 1.5rem;
+  color: #e5e5e5;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.about-item ol li {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .App.home-page .home-section {
+    height: auto;
+    min-height: 100svh;
+    padding: 6rem 1.5rem 3rem;
+    box-sizing: border-box;
+    align-items: center;
+  }
+
+  .home-section .logo-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    transform: none;
+    animation: none;
+    opacity: 1;
+  }
+
+  .home-section .logo-text {
+    font-size: clamp(2.5rem, 10vw, 4.5rem);
+    line-height: 1.1;
+  }
+
+  .home-section .subtitle {
+    margin: 1.5rem 0;
+    font-size: 1.4rem;
+    line-height: 1.4;
+  }
+
+  .home-intro,
+  .home-note {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .home-section .button-container {
+    flex-direction: column;
+    margin-top: 2rem;
+    gap: 1rem;
+  }
+
+  .home-section .action-button {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+
+  .home-section .about-link {
+    margin-top: 2rem;
+  }
+
+  .home-section .about-text {
+    font-size: 1rem;
+  }
+}
+
 .home-section {
   background: transparent;
 }

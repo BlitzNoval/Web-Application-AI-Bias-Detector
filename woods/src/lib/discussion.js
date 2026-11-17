@@ -1,3 +1,5 @@
+import { DISCUSSION_TURNS } from '../../shared/discussion-config.js';
+
 export function waitForTurn(ms, signal) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) return reject(new DOMException('Cancelled', 'AbortError'));
@@ -26,7 +28,7 @@ export async function runDiscussion({ benchmarkData, signal, onMessage, onStatus
   fetcher = fetch, pause = waitForTurn }) {
   const history = [];
   await pause(50, signal); // React StrictMode can cancel its initial effect before any requests.
-  for (let turn = 0; turn < 8; turn++) {
+  for (let turn = 0; turn < DISCUSSION_TURNS; turn++) {
     signal.throwIfAborted();
     const model = turn % 2 === 0 ? 'llama' : 'gemini';
     const reviewer = model === 'llama' ? 'gemini' : 'llama';
@@ -49,7 +51,7 @@ export async function runDiscussion({ benchmarkData, signal, onMessage, onStatus
     }
     signal.throwIfAborted();
     onMessage({ ...message, annotations }, true);
-    if (turn < 7) await pause(700, signal);
+    if (turn < DISCUSSION_TURNS - 1) await pause(700, signal);
   }
   onStatus(null);
 }

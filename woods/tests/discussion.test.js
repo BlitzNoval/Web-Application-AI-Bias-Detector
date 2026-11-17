@@ -9,7 +9,7 @@ const benchmarkData = { benchmark1: { fluencyScore: { correct: 27, total: 30, pe
 const result = data => ({ ok: true, json: async () => data });
 function response() { return { headers: {}, setHeader(k,v) { this.headers[k]=v; }, status(code) { this.code=code; return this; }, json(data) { this.body=data; return this; }, end() {} }; }
 
-test('all eight turns alternate and retain the original data and full history', async () => {
+test('all four turns alternate and retain the original data and full history', async () => {
   const requests=[], reviewed=[];
   await runDiscussion({ benchmarkData, signal: new AbortController().signal,
     pause: async () => {}, onStatus() {}, onWarning() { assert.fail('unexpected warning'); },
@@ -20,7 +20,7 @@ test('all eight turns alternate and retain the original data and full history', 
       return result({ success:true,annotations:[{start:2,end:7,text:'clear',reason:'certainty'}] });
     },
   });
-  assert.equal(requests.length,8);assert.equal(reviewed.length,8);
+  assert.equal(requests.length,4);assert.equal(reviewed.length,4);
   requests.forEach((r,i)=>{assert.equal(r.model,i%2?'gemini':'llama');assert.equal(r.conversationHistory.length,i);assert.deepEqual(r.benchmarkData,benchmarkData);});
   assert.equal(reviewed[0].annotations[0].model,'gemini');assert.equal(reviewed[1].annotations[0].model,'llama');
 });
@@ -29,7 +29,7 @@ test('annotation outage does not terminate the discussion', async () => {
   let messages=0,warnings=0;
   await runDiscussion({ benchmarkData,signal:new AbortController().signal,pause:async()=>{},onStatus(){},onWarning(){warnings++;},onMessage(_,done){if(done)messages++;},
     fetcher:async url=>url.endsWith('discussion-turn')?result({success:true,message:'Reply',model:'Llama'}):{ok:false,json:async()=>({success:false,error:'Review unavailable'})} });
-  assert.equal(messages,8);assert.equal(warnings,8);
+  assert.equal(messages,4);assert.equal(warnings,4);
 });
 
 test('provider failure becomes a visible retryable error, not successful completion', async () => {
@@ -58,7 +58,14 @@ test('discussion route validates data and supplies original metrics on later tur
   try {
     const res=response();await discussionHandler({method:'POST',body:{model:'llama',turnNumber:2,benchmarkData,conversationHistory:[{model:'Gemini',content:'Earlier reply'}]}},res);
     assert.equal(res.code,200);assert.match(payload.messages[0].content,/43 words per minute/);assert.match(payload.messages[1].content,/Gemini: Earlier reply/);
-    for(const body of [{model:'llama',turnNumber:0,benchmarkData:{}},{model:'constructor',turnNumber:0,benchmarkData},{model:'llama',turnNumber:8,benchmarkData}]) {
+    assert.match(payload.messages[0].content,/possible dyslexia/);
+    assert.match(payload.messages[0].content,/exactly 2 short sentences, at most 45 words/);
+    assert.match(payload.messages[0].content,/Do not confirm or rule out dyslexia/);
+    assert.equal(payload.max_tokens,180);assert.equal(res.body.shouldContinue,true);
+    const last=response();await discussionHandler({method:'POST',body:{model:'llama',turnNumber:3,benchmarkData}},last);
+    assert.equal(last.body.shouldContinue,false);
+    assert.match(payload.messages[1].content,/Close the discussion/);
+    for(const body of [{model:'llama',turnNumber:0,benchmarkData:{}},{model:'constructor',turnNumber:0,benchmarkData},{model:'llama',turnNumber:4,benchmarkData}]) {
       const invalid=response();await discussionHandler({method:'POST',body},invalid);assert.equal(invalid.code,400);
     }
   } finally {globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=originalKey;}

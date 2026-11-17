@@ -154,7 +154,7 @@ function ChatInterface({ benchmarkData, onClose, sessionId, hasConsented }) {
       </div>
       <div className="dialogue-stream" aria-busy={!!activeModel}>
         <div className="framing-statement">{hasBenchmarks
-          ? 'Two AIs discuss the same benchmark results. Explore their interpretations and the bias they identify in each other’s responses.'
+          ? 'Four short replies about possible dyslexia, using the same reading and typing results. Explore the reasoning and bias highlights. This discussion cannot provide a diagnosis.'
           : 'Complete and save both benchmarks, then return here to compare the AI perspectives.'}</div>
         {messages.map((message, index) => {
           const ai = AI_MODELS[message.aiModel];
@@ -178,7 +178,7 @@ function ChatInterface({ benchmarkData, onClose, sessionId, hasConsented }) {
         {warning && <div className="discussion-notice" role="status">{warning}</div>}
         {complete && <div className="reflection-panel">
           <div className="reflection-label">DISCUSSION COMPLETE</div>
-          <div className="reflection-content">Compare the interpretations above. Highlighted phrases show where one AI questioned the other’s language; these flags are interpretations, not established facts.</div>
+          <div className="reflection-content">What did each AI assume about dyslexia? Compare its claims with the results. The highlights show one AI’s critique of the other, not verified findings or a diagnosis.</div>
         </div>}
         <div ref={messagesEndRef} />
       </div>
