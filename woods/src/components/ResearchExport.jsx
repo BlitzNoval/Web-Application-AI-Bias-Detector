@@ -199,18 +199,6 @@ function ResearchExport({ onClose }) {
                 Download CSV
               </button>
             </div>
-
-            <div className="export-card">
-              <h4>Votes</h4>
-              <p>User votes on bias validity</p>
-              <button
-                className="export-btn secondary"
-                onClick={() => exportTableAsCSV('votes')}
-                disabled={exportLoading}
-              >
-                Download CSV
-              </button>
-            </div>
           </div>
         </section>
       </div>

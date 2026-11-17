@@ -10,13 +10,11 @@ SELECT
   s.metadata->>'language' as language,
   COUNT(DISTINCT b.id) as total_benchmarks,
   COUNT(DISTINCT c.conversation_id) as total_conversations,
-  COUNT(DISTINCT a.id) as total_annotations,
-  COUNT(DISTINCT v.id) as total_votes
+  COUNT(DISTINCT a.id) as total_annotations
 FROM sessions s
 LEFT JOIN benchmarks b ON s.session_id = b.session_id
 LEFT JOIN conversations c ON s.session_id = c.session_id
 LEFT JOIN annotations a ON s.session_id = a.session_id
-LEFT JOIN votes v ON s.session_id = v.session_id
 GROUP BY s.session_id, s.created_at, s.metadata;
 
 -- 2. Benchmark Results Summary
@@ -63,17 +61,8 @@ SELECT
   a.flagged_by_model,
   a.original_model,
   a.metadata->>'flagged_by_ai' as flagged_by_ai_name,
-  COUNT(v.id) as total_votes,
-  SUM(CASE WHEN v.vote_value = 'valid' THEN 1 ELSE 0 END) as valid_votes,
-  SUM(CASE WHEN v.vote_value = 'invalid' THEN 1 ELSE 0 END) as invalid_votes,
-  ROUND(
-    (SUM(CASE WHEN v.vote_value = 'valid' THEN 1 ELSE 0 END)::NUMERIC / 
-     NULLIF(COUNT(v.id), 0)::NUMERIC) * 100, 
-    1
-  ) as valid_percentage,
   a.created_at
 FROM annotations a
-LEFT JOIN votes v ON a.annotation_id = v.annotation_id
 GROUP BY a.id, a.annotation_id, a.session_id, a.conversation_id, a.flagged_text, 
          a.explanation, a.bias_type, a.flagged_by_model, a.original_model, a.metadata, a.created_at
 ORDER BY a.created_at DESC;
@@ -135,20 +124,6 @@ SELECT
     'flagged_by', a.metadata->>'flagged_by_ai'
   ) as data
 FROM annotations a
-
-UNION ALL
-
-SELECT 
-  'vote' as data_type,
-  v.id::TEXT as primary_id,
-  v.created_at,
-  'USER_VOTE' as export_label,
-  jsonb_build_object(
-    'session_id', v.session_id,
-    'annotation_id', v.annotation_id,
-    'vote_value', v.vote_value
-  ) as data
-FROM votes v
 
 ORDER BY created_at DESC;
 

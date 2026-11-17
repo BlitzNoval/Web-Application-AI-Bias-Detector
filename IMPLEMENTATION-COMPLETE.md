@@ -7,12 +7,10 @@
 - ✅ Benchmarks (oral fluency + typing pace) with labels
 - ✅ AI conversations with model info
 - ✅ Bias annotations with explanations
-- ✅ User votes on bias validity
 
 ### 2. **Relational Data Tracking**
 - ✅ session_id links everything
 - ✅ conversation_id groups AI debates  
-- ✅ annotation_id connects votes to bias flags
 - ✅ New function: `getUserJourney(sessionId)` shows complete user path
 
 ### 3. **Privacy Modal**
@@ -47,7 +45,6 @@ session_id
   │    └─ conversation_id
   │         └─ annotations
   │              └─ annotation_id
-  │                   └─ votes
 ```
 
 **Example Query to See Everything:**
@@ -61,8 +58,6 @@ const journey = await getUserJourney(sessionId);
 //   benchmarks: [...],
 //   conversations: [...],
 //   annotations: [...],
-//   votes: [...],
-//   votesByAnnotation: {...},  // Easy lookup
 //   annotationsByConversation: {...}  // Easy lookup
 // }
 ```
@@ -114,7 +109,6 @@ import { getUserJourney } from './lib/supabase';
 
 const data = await getUserJourney('session-uuid-here');
 console.log(data);
-// Shows: session → benchmarks → conversations → annotations → votes
 ```
 
 ## 🎨 Privacy Modal Features:
@@ -133,7 +127,6 @@ console.log(data);
 3. ✅ Benchmark results saved with labels
 4. ✅ AI conversations tracked with model info
 5. ✅ Annotations tagged with bias types
-6. ✅ Votes connected to annotations
 7. ✅ Complete relational data
 8. ✅ Auto-export script ready
 9. ✅ No console.logs (only errors)
@@ -146,7 +139,6 @@ Once exported to CSV:
 - Filter `model` = "llama" or "gemini"
 - Filter `bias_type` = specific categories
 - Filter `created_at` = date ranges
-- Filter `vote_value` = "valid" or "invalid"
 
 ## 📝 Next Steps:
 

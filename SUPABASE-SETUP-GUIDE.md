@@ -23,7 +23,6 @@ Now you have clean views in Supabase:
 ### Click "Table Editor" and you'll see NEW views:
 
 1. **`user_journey_complete`** - Complete overview per user
-   - Shows: session_id, benchmarks count, conversations count, votes count
    - Use this to see user activity summary
 
 2. **`benchmark_summary`** - Clean benchmark results
@@ -34,9 +33,6 @@ Now you have clean views in Supabase:
    - Shows: which AI, turn number, bias flags count
    - Use this to analyze AI behavior
 
-4. **`bias_annotation_report`** - Bias flags with vote stats
-   - Shows: flagged text, explanation, vote percentages
-   - Use this to see community consensus
 
 5. **`export_ready_data`** - Everything labeled for export
    - Shows: data type, export label, organized JSON
@@ -89,7 +85,6 @@ Skewed-Lenses/
     ├── benchmarks_2025-11-21.csv        ← Excel compatible
     ├── conversations_2025-11-21.csv     ← Excel compatible
     ├── annotations_2025-11-21.csv       ← Excel compatible
-    ├── votes_2025-11-21.csv             ← Excel compatible
     └── full_export_2025-11-21.json      ← Complete backup
 ```
 

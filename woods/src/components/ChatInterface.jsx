@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './ChatInterface.css';
 import AnnotatedText from './AnnotatedText';
-import { saveConversationMessage, saveAnnotationBatch, submitVote, generateConversationId } from '../lib/supabase';
-import { generateConversationId as generateId } from '../hooks/useSessionTracking';
+import { saveConversationMessage, saveAnnotationBatch } from '../lib/supabase';
+import { runDiscussion } from '../lib/discussion';
 
 const AI_MODELS = {
   llama: {
@@ -45,551 +45,141 @@ const AI_MODELS = {
   }
 };
 
-// Vote storage helper functions
-const VOTES_STORAGE_KEY = 'skewed_lenses_votes';
-
-const loadVotesFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(VOTES_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch (error) {
-    console.error('Failed to load votes:', error);
-    return {};
-  }
-};
-
-const saveVotesToStorage = (votes) => {
-  try {
-    localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify(votes));
-  } catch (error) {
-    console.error('Failed to save votes:', error);
-  }
-};
-
-// Animated counter component
-function AnimatedCounter({ value, duration = 1400 }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    let start = displayValue;
-    let end = value;
-    let startTime = null;
-
-    const animate = (currentTime) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-
-      // Easing function for smooth animation
-      const easeOutQuad = progress * (2 - progress);
-      const current = Math.floor(start + (end - start) * easeOutQuad);
-
-      setDisplayValue(current);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    if (value !== displayValue) {
-      requestAnimationFrame(animate);
-    }
-  }, [value]);
-
-  return <>{displayValue}</>;
-}
 
 function ChatInterface({ benchmarkData, onClose, sessionId, hasConsented }) {
   const [messages, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
+  const [activeModel, setActiveModel] = useState(null);
   const [showHighlights, setShowHighlights] = useState(false);
-  const [conversationComplete, setConversationComplete] = useState(false);
-  const [allVotes, setAllVotes] = useState(() => loadVotesFromStorage()); // All votes from all users
-  const [conversationId] = useState(() => generateId()); // Generate unique conversation ID once
-  const [myVotes, setMyVotes] = useState({}); // Current user's votes
-  const [stats, setStats] = useState({ llamaFlags: 0, geminiFlags: 0 });
+  const [complete, setComplete] = useState(false);
+  const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
+  const [run, setRun] = useState(0);
   const messagesEndRef = useRef(null);
-  const conversationHistoryRef = useRef([]);
-  const usedPhrasesRef = useRef({ llama: [], gemini: [] }); // Track used phrases per AI
+  const trackingRef = useRef({ sessionId, hasConsented });
+  const benchmarkJson = JSON.stringify(benchmarkData);
+  const hasBenchmarks = !!benchmarkData?.benchmark1 && !!benchmarkData?.benchmark2;
 
-  // Auto-scroll to newest message
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  useEffect(() => { trackingRef.current = { sessionId, hasConsented }; }, [sessionId, hasConsented]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, activeModel, error]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Start conversation on mount
-  useEffect(() => {
-    if (messages.length === 0) {
-      startConversation();
-    }
-  }, []);
-
-  // Calculate stats when messages update
-  useEffect(() => {
-    const llamaFlags = messages
-      .filter(m => m.annotations && m.annotations.some(a => a.model === 'llama'))
-      .reduce((sum, m) => sum + m.annotations.filter(a => a.model === 'llama').length, 0);
-
-    const geminiFlags = messages
-      .filter(m => m.annotations && m.annotations.some(a => a.model === 'gemini'))
-      .reduce((sum, m) => sum + m.annotations.filter(a => a.model === 'gemini').length, 0);
-
-    setStats({ llamaFlags, geminiFlags });
-  }, [messages]);
-
-  const startConversation = () => {
-    // Add system message with framing statement
-    const systemMessage = {
-      type: 'system',
-      content: 'Two AIs debate the same student reading data. After they finish, vote on which interpretations show bias.',
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages([systemMessage]);
-
-    // Start with Llama after brief delay
-    setTimeout(() => {
-      conductTurn('llama', 0);
-    }, 1000);
-  };
-
-  const formatBenchmarkData = (data) => {
-    return `📊 BENCHMARK RESULTS:
-• Fluency: ${data.benchmark1?.fluencyScore?.percentage || 0}%
-• Skip Rate: ${data.benchmark2?.skipRate || 0}%
-• Words Per Minute: ${data.benchmark2?.wordsPerMinute || 0}
-• Comprehension: ${data.benchmark2?.comprehensionLevel || 'Moderate'}`;
-  };
-
-  const conductTurn = async (modelKey, turnNumber) => {
-    if (turnNumber >= 8) {
-      // Stop after 8 turns and show reflection
-      setConversationComplete(true);
-      addReflectionMessage();
-      return;
-    }
-
-    setIsTyping(true);
-
-    try {
-      // Call API
-      const response = await fetch('/api/discussion-turn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelKey,
-          conversationHistory: conversationHistoryRef.current,
-          benchmarkData,
-          turnNumber
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.message) {
-        // Add to conversation history
-        conversationHistoryRef.current.push({
-          role: 'assistant',
-          content: data.message,
-          model: AI_MODELS[modelKey].name
-        });
-
-        // Get annotations from the OTHER AI
-        const otherAI = modelKey === 'llama' ? 'gemini' : 'llama';
-        const annotations = await getAnnotations(otherAI, data.message);
-
-        // Type out the message with fade-up animation
-        await typeMessage(modelKey, data.message, annotations, turnNumber);
-
-        setIsTyping(false);
-
-        // Next turn - alternate between AIs
-        const nextAI = modelKey === 'llama' ? 'gemini' : 'llama';
-        setTimeout(() => {
-          conductTurn(nextAI, turnNumber + 1);
-        }, 1500);
-      } else {
-        setIsTyping(false);
-        setConversationComplete(true);
-      }
-    } catch (error) {
-      console.error('Turn error:', error);
-      setIsTyping(false);
-      setConversationComplete(true);
-    }
-  };
-
-  const getAnnotations = async (reviewerModel, targetText) => {
-    try {
-      const response = await fetch('/api/annotate-bias', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewerModel, targetText })
-      });
-
-      const data = await response.json();
-      if (data.success && data.annotations) {
-        return data.annotations.map(ann => ({ ...ann, model: reviewerModel }));
-      }
-    } catch (error) {
-      console.error('Annotation error:', error);
-    }
-    return [];
-  };
-
-  const typeMessage = (modelKey, text, annotations, turnNumber) => {
-    return new Promise((resolve) => {
-      const aiConfig = AI_MODELS[modelKey];
-      const phrases = aiConfig.thinkingPhrases;
-
-      // Pick a random thinking phrase that hasn't been used yet
-      const usedPhrases = usedPhrasesRef.current[modelKey];
-      const availablePhrases = phrases.filter(p => !usedPhrases.includes(p));
-
-      // If all phrases have been used, reset for this AI
-      const phrasesToChooseFrom = availablePhrases.length > 0 ? availablePhrases : phrases;
-      if (availablePhrases.length === 0) {
-        usedPhrasesRef.current[modelKey] = [];
-      }
-
-      const thinkingPhrase = phrasesToChooseFrom[Math.floor(Math.random() * phrasesToChooseFrom.length)];
-
-      // Mark this phrase as used
-      usedPhrasesRef.current[modelKey].push(thinkingPhrase);
-
-      // First, add a typing indicator with thinking phrase
-      const typingMessage = {
-        id: `typing-${turnNumber}`,
-        type: 'ai',
-        aiModel: modelKey,
-        content: '',
-        fullContent: text,
-        annotations,
-        isTyping: true,
-        thinkingPhrase,
-        timestamp: new Date().toISOString()
-      };
-
-      setMessages(prev => [...prev, typingMessage]);
-
-      // Longer typing delay - 2.5 to 4 seconds
-      const typingDuration = Math.min(text.length * 20, 4000) + 1000;
-
-      setTimeout(async () => {
-        // Replace typing indicator with full message
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === `typing-${turnNumber}`
-              ? {
-                  ...msg,
-                  id: `msg-${turnNumber}`,
-                  content: text,
-                  isTyping: false,
-                  showTypingAnimation: true
-                }
-              : msg
-          )
-        );
-
-        // Save to Supabase if user consented
-        if (hasConsented && sessionId) {
-          await saveConversationMessage(sessionId, {
-            conversation_id: conversationId,
-            turn_number: turnNumber,
-            model: modelKey,
-            role: 'assistant',
-            content: text,
-            metadata: {
-              annotations,
-              ai_model_name: modelKey === 'llama' ? 'Llama 3.1-8b' : 'Gemini 2.0 Flash',
-              message_timestamp: new Date().toISOString(),
-              message_length: text.length,
-              annotation_count: annotations ? annotations.length : 0,
-              thinking_phrase: AI_MODELS[modelKey].thinkingPhrases[0],
-              exported: false,
-              export_label: `AI_CONVERSATION_${modelKey.toUpperCase()}_TURN_${turnNumber}`
-            }
-          });
-
-          // Save annotations to database
-          if (annotations && annotations.length > 0) {
-            const annotationsToSave = annotations.map((ann, idx) => ({
-              annotation_id: `${conversationId}-turn${turnNumber}-ann${idx}`,
-              conversation_id: conversationId,
-              flagged_text: ann.text || ann.phrase || '',
-              explanation: ann.reason || ann.explanation || 'Bias detected',
-              bias_type: ann.category || 'general',
-              flagged_by_model: modelKey,
-              original_model: modelKey === 'llama' ? 'gemini' : 'llama',
-              turn_number: turnNumber,
-              metadata: {
-                annotation_date: new Date().toISOString(),
-                flagged_by_ai: modelKey === 'llama' ? 'Llama 3.1-8b' : 'Gemini 2.0 Flash',
-                original_ai: modelKey === 'llama' ? 'Gemini 2.0 Flash' : 'Llama 3.1-8b',
-                flagged_text_length: (ann.text || ann.phrase || '').length,
-                bias_category: ann.category || 'general',
-                annotation_index: idx,
-                exported: false,
-                export_label: `BIAS_ANNOTATION_${modelKey.toUpperCase()}_TURN_${turnNumber}_ANN_${idx}`
-              }
-            }));
-
-            await saveAnnotationBatch(sessionId, conversationId, annotationsToSave);
-          }
-        }
-
-        resolve();
-      }, typingDuration);
-    });
-  };
-
-  const addReflectionMessage = () => {
-    const reflection = {
-      type: 'reflection',
-      content: `Both models analyzed the same student benchmark but diverged in tone and reasoning.
-
-Llama framed uncertainty as a lack of data.
-
-Gemini framed uncertainty as cognitive nuance.`,
-      timestamp: new Date().toISOString()
-    };
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, reflection]);
-      // Auto-enable highlights when conversation completes
-      setShowHighlights(true);
-    }, 500);
-  };
-
-  const handleBiasVote = async (messageId, annotationIndex, vote) => {
-    const voteKey = `${messageId}-${annotationIndex}`;
-
-    // Track this user's vote
-    setMyVotes(prev => ({
-      ...prev,
-      [voteKey]: vote
-    }));
-
-    // Add to aggregate votes
-    setAllVotes(prev => {
-      const updated = { ...prev };
-      if (!updated[voteKey]) {
-        updated[voteKey] = { valid: 0, invalid: 0 };
-      }
-
-      updated[voteKey][vote === 'valid' ? 'valid' : 'invalid'] += 1;
-
-      // Save to localStorage
-      saveVotesToStorage(updated);
-      return updated;
-    });
-
-    // Save to Supabase if user consented
-    if (hasConsented && sessionId) {
-      const annotationId = `${conversationId}-turn${messageId.replace('msg-', '')}-ann${annotationIndex}`;
-      await submitVote(sessionId, annotationId, vote);
-    }
-  };
-
-  const getVoteStats = (messageId, annotationIndex) => {
-    const voteKey = `${messageId}-${annotationIndex}`;
-    const votes = allVotes[voteKey] || { valid: 0, invalid: 0 };
-    const total = votes.valid + votes.invalid;
-
-    if (total === 0) return { validPercent: 0, total: 0, valid: 0, invalid: 0 };
-
-    return {
-      validPercent: Math.round((votes.valid / total) * 100),
-      total,
-      valid: votes.valid,
-      invalid: votes.invalid
-    };
-  };
-
-  const restartConversation = () => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    const conversationId = crypto.randomUUID();
+    const data = JSON.parse(benchmarkJson);
     setMessages([]);
-    conversationHistoryRef.current = [];
-    usedPhrasesRef.current = { llama: [], gemini: [] }; // Reset used phrases
-    setConversationComplete(false);
-    setBiasVotes({});
-    setStats({ llamaFlags: 0, geminiFlags: 0 });
-    startConversation();
-  };
+    setComplete(false);
+    setError('');
+    setWarning('');
+    setShowHighlights(false);
+    setActiveModel(null);
+    if (!data?.benchmark1 || !data?.benchmark2) return () => controller.abort();
+
+    async function persistMessage(message) {
+      const tracking = trackingRef.current;
+      if (signal.aborted || !tracking.hasConsented || !tracking.sessionId) return;
+      try {
+        const saved = await saveConversationMessage(tracking.sessionId, {
+          conversation_id: conversationId, turn_number: message.turnNumber,
+          model: message.aiModel, role: 'assistant', content: message.content,
+          metadata: { annotations: message.annotations, ai_model_name: AI_MODELS[message.aiModel].name,
+            message_timestamp: message.timestamp, message_length: message.content.length,
+            annotation_count: message.annotations.length, exported: false },
+        });
+        if (saved.error) throw saved.error;
+        if (signal.aborted || !trackingRef.current.hasConsented) return;
+        if (message.annotations.length) {
+          const savedAnnotations = await saveAnnotationBatch(tracking.sessionId, conversationId,
+            message.annotations.map((ann, index) => ({
+              annotation_id: conversationId + '-turn' + message.turnNumber + '-ann' + index,
+              flagged_text: ann.text, explanation: ann.reason || 'Bias detected', bias_type: ann.category || 'general',
+              flagged_by_model: ann.model, original_model: message.aiModel, turn_number: message.turnNumber,
+              metadata: { flagged_by_ai: AI_MODELS[ann.model].name, original_ai: AI_MODELS[message.aiModel].name, exported: false },
+            })));
+          if (savedAnnotations.error) throw savedAnnotations.error;
+        }
+      } catch {
+        if (!signal.aborted) setWarning('The discussion is available here, but some research data could not be saved online.');
+      }
+    }
+
+    runDiscussion({
+      benchmarkData: data, signal,
+      onStatus: setActiveModel,
+      onWarning: setWarning,
+      onMessage(message, reviewed) {
+        if (signal.aborted) return;
+        setMessages(previous => reviewed
+          ? previous.map(item => item.id === message.id ? message : item)
+          : [...previous, message]);
+        if (reviewed) void persistMessage(message);
+      },
+    }).then(() => {
+      if (!signal.aborted) { setComplete(true); setShowHighlights(true); }
+    }).catch(failure => {
+      if (!signal.aborted) {
+        setActiveModel(null);
+        setShowHighlights(true);
+        setError(failure.name === 'TimeoutError' ? 'The AI took too long to respond. Please try again.' : failure.message);
+      }
+    });
+    return () => controller.abort();
+  }, [run, benchmarkJson]);
+
+  const stats = messages.reduce((counts, message) => {
+    message.annotations.forEach(annotation => { counts[annotation.model] += 1; });
+    return counts;
+  }, { llama: 0, gemini: 0 });
 
   return (
     <div className="academic-interface">
-      {/* Interpretive Header */}
       <div className="interface-header">
         <div className="header-top">
-          <button className="minimal-back-btn" onClick={onClose}>
-            ← BACK
-          </button>
+          <button className="minimal-back-btn" onClick={onClose}>← BACK</button>
           <div className="header-title">THE AI'S PERSPECTIVE</div>
           <div className="header-controls-right">
-            {conversationComplete && (
-              <>
-                <button
-                  className={`control-btn ${showHighlights ? 'active' : ''}`}
-                  onClick={() => setShowHighlights(!showHighlights)}
-                >
-                  {showHighlights ? 'HIDE FLAGS' : 'SHOW FLAGS'}
-                </button>
-                <button className="control-btn" onClick={restartConversation}>
-                  REPROMPT
-                </button>
-              </>
-            )}
+            {(complete || error) && hasBenchmarks && <>
+              {messages.length > 0 && <button className={'control-btn ' + (showHighlights ? 'active' : '')}
+                onClick={() => setShowHighlights(value => !value)}>{showHighlights ? 'HIDE FLAGS' : 'SHOW FLAGS'}</button>}
+              <button className="control-btn" onClick={() => setRun(value => value + 1)}>{error ? 'TRY AGAIN' : 'REPROMPT'}</button>
+            </>}
           </div>
         </div>
-
-        {/* Progressive Stats - Top Right Corner */}
-        {stats.llamaFlags > 0 || stats.geminiFlags > 0 ? (
-          <div className="stats-corner">
-            <div className="stat-counter llama-counter">
-              <span className="counter-label">LLAMA FLAGS</span>
-              <span className="counter-value">
-                <AnimatedCounter value={stats.llamaFlags} duration={600} />
-              </span>
-            </div>
-            <div className="stat-counter gemini-counter">
-              <span className="counter-label">GEMINI FLAGS</span>
-              <span className="counter-value">
-                <AnimatedCounter value={stats.geminiFlags} duration={600} />
-              </span>
-            </div>
-          </div>
-        ) : null}
+        {(stats.llama > 0 || stats.gemini > 0) && <div className="stats-corner">
+          {Object.entries(stats).map(([model, count]) => <div key={model} className={'stat-counter ' + model + '-counter'}>
+            <span className="counter-label">{AI_MODELS[model].name.toUpperCase()} FLAGS</span>
+            <span className="counter-value">{count}</span>
+          </div>)}
+        </div>}
       </div>
-
-      {/* Dialogue Stream */}
-      <div className="dialogue-stream">
-        {messages.map((msg, index) => {
-          if (msg.type === 'system') {
-            return (
-              <div key={index} className="framing-statement">
-                {msg.content}
-              </div>
-            );
-          }
-
-          if (msg.type === 'reflection') {
-            return (
-              <div key={index} className="reflection-panel">
-                <div className="reflection-label">SYSTEM SUMMARY</div>
-                <div className="reflection-content">
-                  {msg.content.split('\n\n').map((para, i) => (
-                    <p key={i}>{para}</p>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-
-          const aiConfig = AI_MODELS[msg.aiModel];
-          const turnLabel = index === 1 ? aiConfig.label : aiConfig.label.replace('1ST INTERPRETATION', 'RESPONSE');
-
-          return (
-            <div key={msg.id} className="dialogue-card">
-              <div className="card-label" style={{ color: aiConfig.lightColor }}>
-                {turnLabel}
-              </div>
-              <div
-                className={`card-content ${msg.showTypingAnimation ? 'typing-animation' : ''}`}
-                style={{
-                  borderColor: `${aiConfig.color}${Math.round(parseFloat(aiConfig.borderOpacity) * 255).toString(16).padStart(2, '0')}`
-                }}
-              >
-                {msg.isTyping ? (
-                  <div className="typing-container">
-                    <div className="typing-indicator">
-                      <span className="dot" style={{ backgroundColor: aiConfig.lightColor }}></span>
-                      <span className="dot" style={{ backgroundColor: aiConfig.lightColor }}></span>
-                      <span className="dot" style={{ backgroundColor: aiConfig.lightColor }}></span>
-                    </div>
-                    <p className="thinking-phrase" style={{ color: aiConfig.lightColor }}>
-                      {msg.thinkingPhrase}
-                    </p>
-                  </div>
-                ) : showHighlights && msg.annotations && msg.annotations.length > 0 ? (
-                  <AnnotatedText text={msg.content} annotations={msg.annotations} />
-                ) : (
-                  <p>{msg.content}</p>
-                )}
-              </div>
-
-              {/* Voting Panel */}
-              {!msg.isTyping && showHighlights && msg.annotations && msg.annotations.length > 0 && (
-                <div className="voting-panel">
-                  <div className="panel-header">COMMUNITY BIAS VALIDATION</div>
-                  {msg.annotations.map((ann, annIndex) => {
-                    const voteKey = `${msg.id}-${annIndex}`;
-                    const userVote = myVotes[voteKey];
-                    const stats = getVoteStats(msg.id, annIndex);
-
-                    return (
-                      <div key={annIndex} className="vote-item">
-                        <div className="vote-phrase">
-                          "{ann.text}" — {ann.reason}
-                        </div>
-
-                        {/* Vote Stats Bar */}
-                        {stats.total > 0 && (
-                          <div className="vote-stats">
-                            <div className="stats-bar">
-                              <div
-                                className="bar-valid"
-                                style={{ width: `${stats.validPercent}%` }}
-                              />
-                              <div
-                                className="bar-invalid"
-                                style={{ width: `${100 - stats.validPercent}%` }}
-                              />
-                            </div>
-                            <div className="stats-text">
-                              <span className="stat-valid">{stats.valid} valid</span>
-                              <span className="stat-divider">•</span>
-                              <span className="stat-invalid">{stats.invalid} not valid</span>
-                              <span className="stat-total">({stats.total} total votes)</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Vote Buttons */}
-                        <div className="vote-actions">
-                          {!userVote ? (
-                            <>
-                              <span className="vote-prompt">Is this bias flag valid?</span>
-                              <button
-                                className="vote-btn valid"
-                                onClick={() => handleBiasVote(msg.id, annIndex, 'valid')}
-                              >
-                                ✓ VALID
-                              </button>
-                              <button
-                                className="vote-btn invalid"
-                                onClick={() => handleBiasVote(msg.id, annIndex, 'invalid')}
-                              >
-                                ✗ NOT VALID
-                              </button>
-                            </>
-                          ) : (
-                            <span className="user-voted">
-                              You voted: {userVote === 'valid' ? '✓ Valid' : '✗ Not Valid'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+      <div className="dialogue-stream" aria-busy={!!activeModel}>
+        <div className="framing-statement">{hasBenchmarks
+          ? 'Two AIs discuss the same benchmark results. Explore their interpretations and the bias they identify in each other’s responses.'
+          : 'Complete and save both benchmarks, then return here to compare the AI perspectives.'}</div>
+        {messages.map((message, index) => {
+          const ai = AI_MODELS[message.aiModel];
+          return <div key={message.id} className="dialogue-card">
+            <div className="card-label" style={{ color: ai.lightColor }}>{index === 0 ? ai.label : ai.name.toUpperCase() + ' — RESPONSE'}</div>
+            <div className="card-content" style={{ borderColor: ai.color + '4d' }}>
+              {showHighlights && message.annotations.length > 0
+                ? <AnnotatedText text={message.content} annotations={message.annotations} />
+                : <p>{message.content}</p>}
             </div>
-          );
+          </div>;
         })}
-
+        {activeModel && <div className="dialogue-card" role="status">
+          <div className="card-label" style={{ color: AI_MODELS[activeModel].lightColor }}>{AI_MODELS[activeModel].name.toUpperCase()}</div>
+          <div className="typing-container">
+            <div className="typing-indicator"><span className="dot" /><span className="dot" /><span className="dot" /></div>
+            <p className="thinking-phrase">Preparing the next perspective and checking bias highlights…</p>
+          </div>
+        </div>}
+        {error && <div className="discussion-notice" role="alert">{error}</div>}
+        {warning && <div className="discussion-notice" role="status">{warning}</div>}
+        {complete && <div className="reflection-panel">
+          <div className="reflection-label">DISCUSSION COMPLETE</div>
+          <div className="reflection-content">Compare the interpretations above. Highlighted phrases show where one AI questioned the other’s language; these flags are interpretations, not established facts.</div>
+        </div>}
         <div ref={messagesEndRef} />
       </div>
     </div>

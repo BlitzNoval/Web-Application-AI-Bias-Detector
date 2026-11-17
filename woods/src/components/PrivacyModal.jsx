@@ -62,7 +62,7 @@ export default function PrivacyModal({ isOpen, onClose, onAccept, onDecline }) {
             <ul>
               <li>Benchmark test results (anonymous)</li>
               <li>AI conversation transcripts</li>
-              <li>Bias annotation votes</li>
+              <li>AI-generated bias annotations</li>
               <li>Session metadata (no personal info)</li>
             </ul>
           </div>

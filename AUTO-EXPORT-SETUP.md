@@ -8,7 +8,6 @@ This guide shows you how to automatically export your Supabase data to CSV/Excel
 2. **benchmarks.csv** - All reading test results with labels
 3. **conversations.csv** - All AI debates with tags
 4. **annotations.csv** - All bias flags with explanations
-5. **votes.csv** - All user votes on bias
 6. **full_export.json** - Complete database snapshot
 
 ## 📊 All Data is Labeled:
@@ -96,7 +95,6 @@ Skewed-Lenses/
     ├── benchmarks_2025-11-21T04-00-00.csv
     ├── conversations_2025-11-21T04-00-00.csv
     ├── annotations_2025-11-21T04-00-00.csv
-    ├── votes_2025-11-21T04-00-00.csv
     └── full_export_2025-11-21T04-00-00.json
 ```
 

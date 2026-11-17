@@ -57,12 +57,11 @@ async function exportAllData() {
 
   try {
     // Fetch all data
-    const [sessions, benchmarks, conversations, annotations, votes] = await Promise.all([
+    const [sessions, benchmarks, conversations, annotations] = await Promise.all([
       supabase.from('sessions').select('*'),
       supabase.from('benchmarks').select('*'),
       supabase.from('conversations').select('*'),
       supabase.from('annotations').select('*'),
-      supabase.from('votes').select('*'),
     ]);
 
     const tables = [
@@ -70,7 +69,6 @@ async function exportAllData() {
       { name: 'benchmarks', data: benchmarks.data },
       { name: 'conversations', data: conversations.data },
       { name: 'annotations', data: annotations.data },
-      { name: 'votes', data: votes.data },
     ];
 
     // Export each table as CSV
@@ -94,13 +92,11 @@ async function exportAllData() {
       total_benchmarks: benchmarks.data?.length || 0,
       total_conversations: conversations.data?.length || 0,
       total_annotations: annotations.data?.length || 0,
-      total_votes: votes.data?.length || 0,
       data: {
         sessions: sessions.data,
         benchmarks: benchmarks.data,
         conversations: conversations.data,
         annotations: annotations.data,
-        votes: votes.data,
       }
     };
 

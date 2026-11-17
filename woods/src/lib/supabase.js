@@ -300,76 +300,6 @@ export async function getAnnotations(conversationId) {
 }
 
 // ============================================
-// VOTES
-// ============================================
-
-/**
- * Submit or update vote on bias annotation
- */
-export async function submitVote(sessionId, annotationId, voteValue) {
-  try {
-    // Upsert: insert if doesn't exist, update if it does
-    const { data, error } = await supabase
-      .from('votes')
-      .upsert(
-        {
-          session_id: sessionId,
-          annotation_id: annotationId,
-          vote_value: voteValue,
-        },
-        {
-          onConflict: 'session_id,annotation_id',
-        }
-      )
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error submitting vote:', error);
-    return { data: null, error };
-  }
-}
-
-/**
- * Get vote statistics for an annotation
- */
-export async function getVoteStats(annotationId) {
-  try {
-    const { data, error } = await supabase
-      .from('vote_statistics')
-      .select('*')
-      .eq('annotation_id', annotationId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error; // Ignore "not found" errors
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error fetching vote stats:', error);
-    return { data: null, error };
-  }
-}
-
-/**
- * Get all votes for a session
- */
-export async function getSessionVotes(sessionId) {
-  try {
-    const { data, error } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('session_id', sessionId);
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error fetching session votes:', error);
-    return { data: null, error };
-  }
-}
-
-// ============================================
 // RESEARCH/EXPORT FUNCTIONS
 // ============================================
 
@@ -378,12 +308,11 @@ export async function getSessionVotes(sessionId) {
  */
 export async function getAllDataForExport(limit = 1000, offset = 0) {
   try {
-    const [sessions, benchmarks, conversations, annotations, votes] = await Promise.all([
+    const [sessions, benchmarks, conversations, annotations] = await Promise.all([
       supabase.from('sessions').select('*').range(offset, offset + limit - 1),
       supabase.from('benchmarks').select('*').range(offset, offset + limit - 1),
       supabase.from('conversations').select('*').range(offset, offset + limit - 1),
       supabase.from('annotations').select('*').range(offset, offset + limit - 1),
-      supabase.from('votes').select('*').range(offset, offset + limit - 1),
     ]);
 
     return {
@@ -391,7 +320,6 @@ export async function getAllDataForExport(limit = 1000, offset = 0) {
       benchmarks: benchmarks.data || [],
       conversations: conversations.data || [],
       annotations: annotations.data || [],
-      votes: votes.data || [],
     };
   } catch (error) {
     console.error('Error fetching export data:', error);
@@ -412,10 +340,6 @@ export async function getAggregateStats() {
       .from('conversations')
       .select('*', { count: 'exact', head: true });
 
-    const { data: voteCount } = await supabase
-      .from('votes')
-      .select('*', { count: 'exact', head: true });
-
     const { data: annotationCount } = await supabase
       .from('annotations')
       .select('*', { count: 'exact', head: true });
@@ -423,7 +347,6 @@ export async function getAggregateStats() {
     return {
       totalSessions: sessionCount?.count || 0,
       totalConversations: conversationCount?.count || 0,
-      totalVotes: voteCount?.count || 0,
       totalAnnotations: annotationCount?.count || 0,
     };
   } catch (error) {
@@ -434,7 +357,7 @@ export async function getAggregateStats() {
 
 /**
  * Get complete user journey with all relationships
- * session → benchmarks → conversations → annotations → votes
+ * session → benchmarks → conversations → annotations
  */
 export async function getUserJourney(sessionId) {
   try {
@@ -462,22 +385,12 @@ export async function getUserJourney(sessionId) {
       .select('*')
       .eq('session_id', sessionId);
 
-    const { data: votes } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('session_id', sessionId);
-
     return {
       session,
       benchmarks,
       conversations,
       annotations,
-      votes,
       // Create mappings for easy lookup
-      votesByAnnotation: votes?.reduce((acc, vote) => {
-        acc[vote.annotation_id] = vote;
-        return acc;
-      }, {}) || {},
       annotationsByConversation: annotations?.reduce((acc, ann) => {
         if (!acc[ann.conversation_id]) acc[ann.conversation_id] = [];
         acc[ann.conversation_id].push(ann);
