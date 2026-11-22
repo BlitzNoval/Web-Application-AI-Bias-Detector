@@ -124,6 +124,8 @@ export async function updateSession(sessionId, metadata) {
  */
 export async function saveBenchmark(sessionId, benchmarkData) {
   try {
+    const session = await createSession(sessionId);
+    if (session.error) throw session.error;
     const { data, error } = await supabase
       .from('benchmarks')
       .insert({

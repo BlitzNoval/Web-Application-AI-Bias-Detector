@@ -8,6 +8,7 @@ import useSpeechStore from './store/useSpeechStore'
 import useSpeechRecognition from './hooks/useSpeechRecognition'
 import useSessionTracking from './hooks/useSessionTracking'
 import { saveBenchmark } from './lib/supabase'
+import { buildBenchmarkRecord } from './lib/benchmark-record'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -37,6 +38,7 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showSaveFailModal, setShowSaveFailModal] = useState(false)
+  const [failedSaveType, setFailedSaveType] = useState('oral_fluency')
   const [showRestartConfirmModal, setShowRestartConfirmModal] = useState(false)
   const [currentBenchmark, setCurrentBenchmark] = useState('benchmark1')
   const [audioLevel, setAudioLevel] = useState(0)
@@ -283,26 +285,8 @@ function App() {
 
       // Save to Supabase database (if user consented)
       if (hasConsented && sessionId && benchmark2Results) {
-        await saveBenchmark(sessionId, {
-          benchmark_type: 'typing_pace',
-          words_per_minute: benchmark2Results.wpm,
-          completion_rate: benchmark2Results.completionRate,
-          skip_rate: benchmark2Results.skipRate,
-          total_typed_words: benchmark2Results.totalWords,
-          time_elapsed: benchmark2Results.timeElapsed,
-          typing_data: benchmark2Results.wordStatuses || [],
-          metadata: {
-            test_name: 'Typing Pace Assessment',
-            test_date: new Date().toISOString(),
-            test_duration_seconds: benchmark2Results.timeElapsed / 1000,
-            wpm: benchmark2Results.wpm,
-            completion_percentage: benchmark2Results.completionRate,
-            skip_percentage: benchmark2Results.skipRate,
-            test_completed: true,
-            exported: false,
-            export_label: 'BENCHMARK_2_TYPING_PACE'
-          }
-        })
+        const { error } = await saveBenchmark(sessionId, buildBenchmarkRecord('typing_pace', benchmark2Results))
+        if (error) throw error
       }
 
       setBenchmark2SaveLoading(false)
@@ -317,7 +301,8 @@ function App() {
 
     } catch (error) {
       setBenchmark2SaveLoading(false)
-      // Could add error modal here like Benchmark 1
+      setFailedSaveType('typing_pace')
+      setShowSaveFailModal(true)
     }
   }
 
@@ -726,24 +711,8 @@ function App() {
 
       // Save to Supabase database (if user consented)
       if (hasConsented && sessionId) {
-        await saveBenchmark(sessionId, {
-          benchmark_type: 'oral_fluency',
-          fluency_score: benchmarkResults.fluencyPercentage,
-          total_words: benchmarkResults.totalWords,
-          correct_words: benchmarkResults.correctWords,
-          total_attempts: benchmarkResults.totalAttempts,
-          word_data: benchmarkResults.wordStatuses || [],
-          metadata: {
-            test_name: 'Oral Reading Fluency Test',
-            test_date: new Date().toISOString(),
-            test_duration_seconds: benchmarkResults.duration || 0,
-            accuracy_percentage: benchmarkResults.fluencyPercentage,
-            skipped_words: benchmarkResults.skippedWords || 0,
-            test_completed: true,
-            exported: false,
-            export_label: 'BENCHMARK_1_ORAL_FLUENCY'
-          }
-        })
+        const { error } = await saveBenchmark(sessionId, buildBenchmarkRecord('oral_fluency', benchmarkResults))
+        if (error) throw error
       }
 
       // Update completion status
@@ -763,6 +732,7 @@ function App() {
 
     } catch (error) {
       setIsSaving(false)
+      setFailedSaveType('oral_fluency')
       setShowSaveFailModal(true)
     }
   }
@@ -2011,7 +1981,7 @@ function App() {
 
             <div className="modal-content">
               <div className="test-description">
-                <p>Failed to save results. Please check your connection and try again.</p>
+                <p>Your results are kept on this device, but saving to the research database failed. Check your connection and try again.</p>
               </div>
             </div>
 
@@ -2026,7 +1996,8 @@ function App() {
                 className="action-button primary"
                 onClick={() => {
                   setShowSaveFailModal(false)
-                  handleSaveResults()
+                  if (failedSaveType === 'typing_pace') handleBenchmark2SaveResults()
+                  else handleSaveResults()
                 }}
               >
                 Try Again
